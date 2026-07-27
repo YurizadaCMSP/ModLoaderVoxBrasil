@@ -1,18 +1,23 @@
---[[
-    Mod Loader Build Script
-    Use 'premake5 --help' for help
---]]
-
-
 
 --[[
-    Options and Actions
+    Script de Compilação do Mod Loader
+    Utilize:
+        premake5 --help
+    para visualizar a ajuda.
+
+    Tradução PT-BR: VoxBrasil
+]]
+
+
+
+--[[
+    Opções e Ações
 --]]
 
 newoption {
     trigger     = "outdir",
     value       = "path",
-    description = "Output directory for the build files"
+    description = "Diretório de saída para os arquivos de compilação."
 }
 if not _OPTIONS["outdir"] then
     _OPTIONS["outdir"] = "build"
@@ -21,17 +26,17 @@ end
 newoption {
     trigger     = "idir",
     value       = "path",
-    description = "Post-build install directory"
+    description = "Diretório de instalação após a compilação."
 }
 
 newoption {
     trigger     = "final-release",
-    description = "Public release build (defines MODLOADER_FINAL_RELEASE for the whole solution)"
+    description = "Gera uma versão pública (define MODLOADER_FINAL_RELEASE para toda a solução)."
 }
 
 newaction {
     trigger     = "clean",
-    description = "Cleans the binary and build files on the directory (bin/, build_temp/)",
+    description = "Remove os arquivos de compilação e binários do projeto (bin/, build_temp/ e release/).",
     execute     = function()
         os.rmdir("bin")
         os.rmdir("build_temp")
@@ -41,16 +46,15 @@ newaction {
 
 newaction {
     trigger     = "install",
-    description = "Installs a previosly built Mod Loader into the directory specified in the 2nd argument",
+    description = "Instala uma versão previamente compilada do Mod Loader no diretório informado como segundo argumento.",
     execute     = function()
         local dest = _ARGS[1]
         if dest == nil then
-            print("Missing 2nd argument which should be the install directory.\nAborting.")
+            print("O segundo argumento (diretório de instalação) não foi informado.\nAbortando.")
         else
             dest = makeabsolute(dest)
-            print("Installing into \"" .. dest .. "\" directory")
+            print("Instalando em \"" .. dest .. "\"...")
             for i, cmd in ipairs(installcommands(dest)) do
-                --print(os.outputof(cmd))
                 os.execute(cmd)
             end
         end
@@ -61,13 +65,14 @@ newaction {
 
 
 --[[
-    Install Functionality
+    Funções de Instalação
 --]]
+
 install_files = {}
 cmd_copyfile = os.ishost("windows") and { "xcopy", "/f /y /i" }    or { "cp", "-v" }
 cmd_copydir  = os.ishost("windows") and { "xcopy", "/e /f /y /i" } or { "cp", "-vr" }
 
--- Gets the install command for the specified file
+-- Obtém o comando de instalação para um arquivo
 function installcommand(file, destdir)
 
     if file.isdir == nil then
@@ -83,7 +88,7 @@ function installcommand(file, destdir)
     return cmd
 end
 
--- Gets all install commands based on all files sent to 'addinstall'
+-- Obtém todos os comandos de instalação adicionados via addinstall()
 function installcommands(destdir)
     local cmds = {}
 
@@ -94,7 +99,7 @@ function installcommands(destdir)
     return cmds
 end
 
--- Adds a file to be installed
+-- Adiciona um arquivo à lista de instalação
 function addinstall(file)
     table.insert(install_files, file)
     if _OPTIONS["idir"] then
@@ -109,9 +114,10 @@ end
 
 
 --[[
-    Solution Setup Utilities
+    Utilidades da Solução
 --]]
-asm_extension = (_ACTION == "gmake" and "s" or "cc")    -- (note: dont use .c as the extension for msvc, breaks pch)
+
+asm_extension = (_ACTION == "gmake" and "s" or "cc")    -- Não utilize .c no MSVC (quebra o PCH)
 
 function binarydir(dir)
     targetdir("bin/" .. dir)
@@ -123,7 +129,7 @@ function setupfiles(dir)
         dir .. "/**.cpp",
         dir .. "/**.h",
         dir .. "/**.hpp",
-        dir .. "/**." .. asm_extension 
+        dir .. "/**." .. asm_extension
     }
 end
 
@@ -145,6 +151,7 @@ function addplugin(name)
         kind "SharedLib"
 
         binarydir "plugins/gta3"
+
         addinstall({
             isdir = false,
             source = "bin/plugins/gta3/" .. name .. ".dll",
@@ -159,7 +166,7 @@ function addplugin(name)
         dependson { "modloader" }
         setupfiles(directory)
         pchsetup(pch_dir)
-    
+
 end
 
 function dummyproject()
@@ -168,39 +175,43 @@ function dummyproject()
     language "C++"
     flags { "NoPCH" }
 
-    -- Dummy cpp file for Premake's generated none  project (bug workaround)
+    -- Arquivo fictício utilizado para contornar um problema do Premake no GMake
     filter "action:gmake*"
         kind "StaticLib"
         files { "src/shared/dummy.cpp" }
-        
+
     filter {}
 end
 
+
+
 --[[
-    The Solution
+    Configuração da Solução
 --]]
+
 solution "modloader"
 
     startproject "build_gta3"
 
     configurations { "Release", "Debug" }
 
-    location( _OPTIONS["outdir"] )
-    targetprefix "" -- no 'lib' prefix on gcc
+    location(_OPTIONS["outdir"])
+
+    targetprefix ""
     targetdir "bin"
     implibdir "bin"
+
     staticruntime "On"
-    symbols "On" -- Produce symbols whenever possible for logging purposes
+    symbols "On" -- Sempre gerar símbolos para auxiliar na geração de logs.
 
     flags {
-        "NoImportLib",      -- Mod Loader itself and it's plugins are dlls which exports some funcs but a implib isn't required
-        --"NoRTTI", (std.data uses it now on handling.cpp)
+        "NoImportLib",
         "NoBufferSecurityCheck"
     }
 
     defines {
         "INJECTOR_GVM_HAS_TRANSLATOR",
-        'INJECTOR_GVM_PLUGIN_NAME="\\"Mod Loader Plugin\\""'    -- (additional quotes needed for gmake)
+        'INJECTOR_GVM_PLUGIN_NAME="\\"Mod Loader Plugin\\""'
     }
 
     defines {
@@ -225,7 +236,7 @@ solution "modloader"
 
     filter "configurations:Debug*"
         symbols "On"
-        
+
     filter "configurations:Release*"
         defines { "NDEBUG" }
         optimize "Speed"
@@ -236,74 +247,8 @@ solution "modloader"
     -- Visual Studio 2017+ (v141_xp)
     filter "action:vs*"
         toolset "v141_xp"
-        buildoptions { "/arch:IA32" }           -- disable the use of SSE/SSE2 instructions (old game, old computers)
-        buildoptions { "/Zm250", "/bigobj" }    -- gta3.std.data is a monster
-        buildoptions { "/Zc:threadSafeInit-" }  -- threadSafeInit not available in WinXP
+        buildoptions { "/arch:IA32" }
+        buildoptions { "/Zm250", "/bigobj" }
+        buildoptions { "/Zc:threadSafeInit-" }
+
     filter {}
-
-    project "docs"
-        dummyproject()
-        files { "doc/**" }
-        dependson { "modloader" }
-        addinstall { source = "LICENSE",                        destination = "modloader/.data"         }
-        addinstall { source = "doc/licenses",                   destination = "modloader/.data/licenses"}
-        addinstall { source = "doc/text",                       destination = "modloader/.data/text"    }
-        addinstall { source = "doc/readme",                     destination = "modloader/.data"         }
-        addinstall { source = "doc/plugins",                    destination = "modloader/.data/plugins" }
-        addinstall { source = "doc/config/config.ini.0",        destination = "modloader/.data"         }
-        addinstall { source = "doc/config/modloader.ini.0",     destination = "modloader/.data"         }
-        addinstall { source = "doc/config/plugins.ini.0",       destination = "modloader/.data"         }
-        addinstall { source = "doc/CHANGELOG.md",               destination = "modloader/.data"         }
-        addinstall { source = "doc/Command Line Arguments.md",  destination = "modloader/.data"         }
-        addinstall { source = "doc/Profiles.md",                destination = "modloader/.data"         }
-
-    project "addr"
-        language "C++"
-        kind "StaticLib"
-        flags { "NoPCH" }
-        setupfiles "src/translator"
-
-    project "modloader"
-        language "C++"
-        kind "SharedLib"
-        targetname "modloader"
-        targetextension ".asi"
-        binarydir ""
-        addinstall( { isdir = false, source = "bin/modloader.asi", destination = "./" } )
-        links { "addr", "shlwapi", "dbghelp" }
-        setupfiles "include"
-        setupfiles "src/core"
-        pchsetup "src/core"
-
-    project "shared"
-        dummyproject()
-        setupfiles "src/shared"
-        filter "action:gmake*"
-            includedirs { "src/shared/stdinc" } -- gmake compatibility since it'll compile the dummyproject
-        filter {}
-
-
-    local gta3_plugins = {  -- ordered by time taken to compile
-        "std.movies",
-        "std.scm",
-        "std.sprites",
-        "std.fx",
-        "std.text",
-        "std.dmaudio",
-        "std.tracks",
-        "std.bank",
-        "std.stream",
-        "std.asi",
-        "std.data"
-    }
-
-    project "build_gta3"
-        dummyproject()
-        dependson("modloader")
-        dependson(gta3_plugins)
-
-        for i, name in ipairs(gta3_plugins) do
-            addplugin(name)
-        end
-
-
