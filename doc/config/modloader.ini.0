@@ -1,30 +1,76 @@
 ;
-;           Mod Loader Folder Config File
+;           Arquivo de Configuração de Perfis do Mod Loader
+;                 Tradução PT-BR - VoxBrasil
 ;
+
 [Folder.Config]
-Profile = Default                 ; Profile to be used to configure mods
-PriorityLimit = 100               ; Max allowed value in Profiles.*.Priority (minimum is 1)
+
+Profile = Default                 ; Perfil utilizado pelo Mod Loader para carregar e configurar os mods.
+
+PriorityLimit = 100               ; Valor máximo permitido para Profiles.*.Priority (o mínimo é 1).
+
+
 
 [Profiles.Default.Config]
-IgnoreAllMods  = false            ; Ignores all mods. This essentially disables mods loading.
-ExcludeAllMods = false            ; Excludes all mods from being loaded except the ones at IncludeMods list
+
+IgnoreAllMods  = false            ; Ignora todos os mods. Na prática, desativa completamente o carregamento de mods.
+
+ExcludeAllMods = false            ; Impede o carregamento de todos os mods, exceto aqueles definidos em IncludeMods.
+
+
 
 [Profiles.Default.Priority]
-; Defines mods priority (which mods should go into effect if both replaces the same file)
-; The priority should be between 1 and PriorityLimit, where higher values override lower ones.
-; Additionally priority 0 makes the mod be ignored (just like IgnoreMods).
-; The default priority is 50.
-;MyMod=50
+
+; Define a prioridade dos mods quando dois ou mais modificam o mesmo arquivo.
+;
+; A prioridade deve estar entre 1 e PriorityLimit.
+; Valores maiores possuem prioridade sobre valores menores.
+;
+; Prioridade 0 faz com que o mod seja ignorado
+; (equivalente a adicioná-lo em IgnoreMods).
+;
+; A prioridade padrão é 50.
+;
+; Exemplo:
+; MeuMod=50
+
+
 
 [Profiles.Default.IgnoreFiles]
-; Put wildcard to files to be ignored here (e.g. cheetah.dff, *.dff, path_in_mod/*.dff)
+
+; Adicione aqui arquivos que deverão ser ignorados pelo Mod Loader.
+;
+; É possível utilizar curingas (*).
+;
+; Exemplos:
+; cheetah.dff
+; *.dff
+; models/*.txd
+; textures/**/*.png
+
+
 
 [Profiles.Default.IgnoreMods]
-; Put wildcard to mods to be ignored here
+
+; Adicione aqui os mods que deverão ser ignorados.
+;
+; Também é possível utilizar curingas (*).
+
 _ignore
 
+
+
 [Profiles.Default.IncludeMods]
-; Put wildcard to mods to be included in the game even when ExcludeAllMods=true
+
+; Adicione aqui os mods que deverão ser carregados
+; quando ExcludeAllMods estiver definido como true.
+
+
 
 [Profiles.Default.ExclusiveMods]
-; Put wildcard to mods that should be loaded ONLY on this profile
+
+; Adicione aqui os mods que deverão ser carregados
+; exclusivamente neste perfil.
+;
+; Esses mods serão ignorados automaticamente por todos
+; os demais perfis.
