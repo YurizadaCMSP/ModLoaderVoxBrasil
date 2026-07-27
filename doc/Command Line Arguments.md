@@ -1,37 +1,146 @@
-Mod Loader Command Line
-==============================
+# Argumentos de Linha de Comando do Mod Loader
+=============================================
 
-Mod Loader allows certain command line arguments to get passed to the game executable
+O **Mod Loader** permite utilizar argumentos de linha de comando ao iniciar o executável do jogo. Esses parâmetros possibilitam controlar quais mods ou perfis serão carregados durante a execução.
 
-* -nomods
+---
 
-   No modification from *modloader* directory gets loaded when this argument is used.
-   
-   __Usage__: `gta_sa.exe -nomods`
-   
+# -nomods
 
-* -mod _modname_
+Impede que qualquer mod presente na pasta **modloader** seja carregado.
 
-   This command line option makes Mod Loader load only _modname_ from the *modloader* directory.
-   That's essentially the same as creating a profile with *ExcludeAllMods* enabled plus the mod _modname_ in the *[IncludeMods]* section
+### Uso
 
-   __Usage__: `gta_sa.exe -mod modname`
-   
-   This will make Mod Loader load *modloader/modname* with priority 20.
+```text
+gta_sa.exe -nomods
+```
 
-   You can send more than one command of this type to load many mods.
+### Resultado
 
-* -mod _modname_=_priority_
+O jogo será iniciado sem carregar nenhuma modificação do Mod Loader.
 
-   Does the same as the `-mod _modname_` except giving the specified mod a priority.
+---
 
-* -modprof _profilename_
+# -mod NomeDoMod
 
-   Loads the specified profile.
+Faz com que o Mod Loader carregue apenas o mod especificado na pasta **modloader**.
 
+Na prática, esse comando possui o mesmo efeito que criar um perfil com:
 
-Notes
----------------------
+- `ExcludeAllMods = true`
+- O mod listado em `[IncludeMods]`
 
-+ The `-nomods`, `-mod` and `-modprof` command lines are mutually exclusive.
-+ When `-mod` or a `-modprof` command line are used a anonymous profile is created so any changes to the related profiles aren't saved/loaded. 
+### Uso
+
+```text
+gta_sa.exe -mod NomeDoMod
+```
+
+### Exemplo
+
+```text
+gta_sa.exe -mod MeuHUD
+```
+
+O Mod Loader carregará apenas:
+
+```text
+modloader/MeuHUD
+```
+
+com prioridade padrão **20**.
+
+> Você pode utilizar esse parâmetro várias vezes para carregar diversos mods.
+
+Exemplo:
+
+```text
+gta_sa.exe -mod MeuHUD -mod SkyGFX -mod Project2DFX
+```
+
+---
+
+# -mod NomeDoMod=Prioridade
+
+Funciona da mesma forma que `-mod`, porém permite definir uma prioridade personalizada para o mod.
+
+### Uso
+
+```text
+gta_sa.exe -mod NomeDoMod=Prioridade
+```
+
+### Exemplo
+
+```text
+gta_sa.exe -mod MeuHUD=100
+```
+
+Neste caso:
+
+- Apenas o mod **MeuHUD** será carregado;
+- Sua prioridade será **100**.
+
+---
+
+# -modprof NomeDoPerfil
+
+Carrega um perfil específico do Mod Loader.
+
+### Uso
+
+```text
+gta_sa.exe -modprof MeuPerfil
+```
+
+### Exemplo
+
+```text
+gta_sa.exe -modprof SAMP
+```
+
+O Mod Loader utilizará todas as configurações definidas no perfil **SAMP**.
+
+---
+
+# Observações
+
+- Os parâmetros `-nomods`, `-mod` e `-modprof` são **mutuamente exclusivos**. Ou seja, apenas um deles pode ser utilizado por vez.
+
+- Quando `-mod` ou `-modprof` são utilizados, o Mod Loader cria um **perfil temporário (anônimo)** durante a execução do jogo.
+
+- Alterações feitas nesse perfil temporário **não serão salvas** e também **não substituirão** o perfil original.
+
+---
+
+# Exemplos
+
+### Iniciar o jogo sem mods
+
+```text
+gta_sa.exe -nomods
+```
+
+### Carregar apenas um mod
+
+```text
+gta_sa.exe -mod SkyGFX
+```
+
+### Carregar vários mods
+
+```text
+gta_sa.exe -mod SkyGFX -mod Project2DFX -mod MeuHUD
+```
+
+### Carregar um mod com prioridade personalizada
+
+```text
+gta_sa.exe -mod MeuHUD=100
+```
+
+### Iniciar utilizando um perfil
+
+```text
+gta_sa.exe -modprof SAMP
+```
