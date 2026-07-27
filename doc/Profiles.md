@@ -1,95 +1,270 @@
-Mod Loader Profiles
+# Perfis do Mod Loader
 ========================
 
-Mod Loader comes with a nice feature to manage which modifications to get loaded under certain circustances called profiles.
-Profiles let you select a group of mods to load, files to ignore and so on.
+O **Mod Loader** possui um recurso muito útil chamado **Perfis (Profiles)**, que permite controlar quais modificações serão carregadas em diferentes situações.
 
-To make use a profile switch the current profile in *modloader.ini base config*, send a command line `-modprof` followed by the profile name to use, or have a `UseIfModule` condition on it.
+Com os perfis, é possível:
 
-To create or modify profiles go into `modloader.ini` or create a new ini in the *.profiles/* directory, such ini can have any name.
+- Carregar apenas determinados mods;
+- Ignorar mods específicos;
+- Ignorar arquivos específicos;
+- Definir prioridades entre mods;
+- Criar configurações diferentes para GTA San Andreas, SA-MP, Open.MP e outros executáveis.
 
-For a profile to be detected as existing, you need to have at least one ini section named after a profile.
-A profile section starts with `Profile` followed by a *dot*, then the *profile name* followed by another *dot* and now what the section is supposed to do. Example:
+---
 
-    [Profiles.ProfileName.Config]
+## Como utilizar um perfil
 
-For the config section of the profile named ProfileName
+Você pode selecionar um perfil de três maneiras:
 
-__Note__: Profile names are not case-sensitive!
+- Alterando o perfil atual na configuração principal do **modloader.ini**;
+- Iniciando o jogo com o parâmetro de linha de comando:
 
-`[Profiles.ProfileName.Config] `
---------------------------------------
+```text
+-modprof NomeDoPerfil
+```
 
-##### Parents = ProfileName|$Current|$None, ...
+- Utilizando a opção **UseIfModule**, que ativa automaticamente um perfil quando um determinado módulo (DLL ou executável) estiver carregado.
 
-Defines one or more parent profiles to inherit all it's configuration from, that's priorities, files to ignore, and so on.
+---
 
-If two inherited profiles are mutual exclusive the behaviour is undefined.
+## Criando um perfil
 
-Special values are:
-* **$Current** -- Inherits from the currently selected profile in *modloader.ini base config*. This may be useful for conditional profiles.
-* **$None**    -- No inheritance.
+Para criar ou editar um perfil, abra o arquivo:
 
-If **$None** is specified as **any** of the parents no inheritance will take place.
+```text
+modloader.ini
+```
 
-Default value is `$None`.
+ou crie um novo arquivo `.ini` dentro da pasta:
 
-##### IgnoreAllMods = true|false
+```text
+.profiles/
+```
 
-Ignores all mods in the modloader directory, essentially disabling any mod.
-Default value is `false`.
+O nome do arquivo pode ser qualquer um.
 
-__Note__: `IgnoreAllFiles` can also be used and it does the same as this.
+---
 
-##### ExcludeAllMods = true|false
+## Estrutura de um perfil
 
-Ignores all mods in the modloader directory except for the ones in the [Profiles.ProfileName.IncludeMods] list. 
-Default value is `false`.
+Para que o Mod Loader reconheça um perfil, o arquivo deve conter pelo menos uma seção com este formato:
 
-##### UseIfModule = ModuleName
+```ini
+[Profiles.NomeDoPerfil.Config]
+```
 
-This profile is forced to be used by Mod Loader if the specified executable/dll module is loaded.
-Any changes on this entry while the game while the game is running won't make any effect until the next run.
-This may be useful for a SA:MP profile or game-dependent profile.
+Onde:
 
-Notice this profile is used as an *anonymous* profile when the condition is met thus it's a clone of the saved profile but not itself consequently any in-game changes to the profile will not be saved or loaded.
+- **Profiles** → identifica o sistema de perfis;
+- **NomeDoPerfil** → nome do perfil;
+- **Config** → seção de configuração.
 
-Using a profile if running from SAMP example:
+### Exemplo
 
-    UseIfModule = SAMP
+```ini
+[Profiles.SAMP.Config]
+```
 
-`[Profiles.ProfileName.IgnoreMods]`
---------------------------------------
-Any modification listed on this section is going to be ignored while scanning for mods.
+Este exemplo cria um perfil chamado **SAMP**.
 
-Supports wildcards.
+> **Observação:** Os nomes dos perfis **não diferenciam letras maiúsculas e minúsculas**.
 
-`[Profiles.ProfileName.IncludeMods]`
---------------------------------------
-All the mods in this list are going to be used even when `[Profiles.ProfileName.Config]:ExcludeAllMods` is set to `true`. 
+---
 
-Supports wildcards.
+# [Profiles.NomeDoPerfil.Config]
 
-`[Profiles.ProfileName.ExclusiveMods]`
---------------------------------------
-Any mod in this list will be loaded *ONLY* by this profile, any other profile will have this mod automatically ignored.
-If another profile has a similar exclusive mod, both will have the mods as exclusive and use them.
+## Parents = NomeDoPerfil|$Current|$None
 
-Supports wildcards.
+Define um ou mais perfis "pais", dos quais este perfil herdará todas as configurações.
 
-`[Profiles.ProfileName.IgnoreFiles]`
---------------------------------------
-Any file in this list are ignored by the loader while scanning for files.
-The wildcards can contain sub folders, for example:
+Isso inclui:
 
-    to_ignore/*.dff
+- prioridades;
+- arquivos ignorados;
+- mods ignorados;
+- demais configurações.
 
-This line would ignores all files in the *to_ignore* directory that have a dff extension.
-Notice *to_ignore* must be **INSIDE a mod directory**, such as *modloader/my mod/to_ignore/*
+Exemplo:
 
-Supports wildcards.
+```ini
+Parents = Padrão
+```
 
-`[Profiles.ProfileName.Priority]`
---------------------------------------
-Defines mods priorities, that's if two mods modify the same file which should have precedence over the other.
-The key in this section is the mod name and the value the priority from 0 to 100.
+ou
+
+```ini
+Parents = Padrão|SAMP
+```
+
+### Valores especiais
+
+### `$Current`
+
+Herda as configurações do perfil atualmente selecionado no **modloader.ini**.
+
+Útil para perfis condicionais.
+
+### `$None`
+
+Não herda nenhuma configuração.
+
+Se `$None` estiver presente na lista de pais, nenhuma herança será realizada.
+
+Valor padrão:
+
+```ini
+$None
+```
+
+---
+
+## IgnoreAllMods = true|false
+
+Ignora todos os mods existentes na pasta **modloader**.
+
+Na prática, é como desativar completamente o Mod Loader.
+
+Valor padrão:
+
+```ini
+false
+```
+
+> **Observação:** A opção `IgnoreAllFiles` possui exatamente o mesmo efeito.
+
+---
+
+## ExcludeAllMods = true|false
+
+Ignora todos os mods da pasta **modloader**, exceto aqueles listados em:
+
+```ini
+[Profiles.NomeDoPerfil.IncludeMods]
+```
+
+Valor padrão:
+
+```ini
+false
+```
+
+---
+
+## UseIfModule = NomeDoMódulo
+
+Força o uso deste perfil quando determinado executável ou DLL estiver carregado.
+
+Alterações nesta opção só terão efeito após reiniciar o jogo.
+
+É muito útil para criar perfis automáticos para:
+
+- SA-MP
+- Open.MP
+- MTA
+- Outros mods
+
+### Exemplo
+
+```ini
+UseIfModule = SAMP
+```
+
+Quando o **SAMP.dll** estiver carregado, este perfil será utilizado automaticamente.
+
+> **Importante:** O perfil é carregado como uma cópia temporária (anônima). Alterações feitas durante o jogo não serão salvas neste perfil.
+
+---
+
+# [Profiles.NomeDoPerfil.IgnoreMods]
+
+Todos os mods listados nesta seção serão ignorados durante o carregamento.
+
+Suporta caracteres curinga (*wildcards*).
+
+Exemplo:
+
+```ini
+HUD Antiga*
+```
+
+---
+
+# [Profiles.NomeDoPerfil.IncludeMods]
+
+Quando `ExcludeAllMods = true`, somente os mods listados nesta seção serão carregados.
+
+Também suporta *wildcards*.
+
+Exemplo:
+
+```ini
+Meu HUD
+Meu ENB
+```
+
+---
+
+# [Profiles.NomeDoPerfil.ExclusiveMods]
+
+Os mods listados aqui serão carregados **exclusivamente** por este perfil.
+
+Qualquer outro perfil irá ignorá-los automaticamente.
+
+Se outro perfil também definir um mod exclusivo, ambos continuarão funcionando normalmente dentro de seus respectivos perfis.
+
+Suporta *wildcards*.
+
+---
+
+# [Profiles.NomeDoPerfil.IgnoreFiles]
+
+Todos os arquivos listados aqui serão ignorados pelo Mod Loader durante a varredura.
+
+É possível utilizar *wildcards* inclusive em subpastas.
+
+### Exemplo
+
+```ini
+to_ignore/*.dff
+```
+
+Isso fará com que todos os arquivos `.dff` da pasta:
+
+```text
+modloader/Meu Mod/to_ignore/
+```
+
+sejam ignorados.
+
+> **Importante:** A pasta deve estar dentro do diretório do mod.
+
+---
+
+# [Profiles.NomeDoPerfil.Priority]
+
+Define a prioridade dos mods.
+
+Quando dois mods modificam o mesmo arquivo, o Mod Loader utilizará aquele que possuir maior prioridade.
+
+Formato:
+
+```ini
+NomeDoMod = Prioridade
+```
+
+A prioridade varia de:
+
+```text
+0 até 100
+```
+
+### Exemplo
+
+```ini
+SkyGFX = 90
+Project2DFX = 80
+Meu HUD = 100
+```
+
+Neste exemplo, caso dois mods alterem o mesmo arquivo, **Meu HUD** terá prioridade sobre os demais.
