@@ -1,154 +1,561 @@
-Creating Your Own Loader For Mod Loader
-==================================================
+# Criando Seu Próprio Plugin (Loader) para o Mod Loader
+=======================================================
 
-Mod Loader is fully plugin based, this makes things simpler and more independent, each plugin is responssible for handling a certain kind of file.
-   
-The interface to communicate with Mod Loader is by using an C event-driven API, however there is a C++ binding, which works better.
+O **Mod Loader** é totalmente baseado em plugins. Essa arquitetura torna o sistema mais modular e independente, pois cada plugin é responsável por lidar com um determinado tipo de arquivo.
 
-We'll only cover the C++ interface on this document.
+A comunicação entre o núcleo do Mod Loader e seus plugins é feita por meio de uma **API em C baseada em eventos**. No entanto, também existe uma **interface em C++**, que é mais prática e recomendada para novos desenvolvimentos.
 
+Neste documento abordaremos apenas a interface em **C++**.
 
-The C++ interface
--------------------------------
+---
 
-As previosly stated, the communication between the Mod Loader core and the plugin will be, essentially, event-driven. We'll need to create an object implementing the events and then build the plugin as a DLL file.
+# Interface C++
 
-Please note we shall **NOT** implement a `DllMain` function!
+Como mencionado anteriormente, a comunicação entre o Mod Loader e um plugin acontece através de eventos.
 
+Para criar um plugin, será necessário implementar uma classe que responda a esses eventos e compilá-la como uma biblioteca dinâmica (**DLL**).
 
-To include the basic C++ interface to interact with Mod Loader, include the header file *modloader/modloader.hpp* which is at the root include directory from the source tree.
+> **Importante:** Não implemente uma função `DllMain()` no seu plugin.
 
-The first step is to create an object derived from `modloader::basic_plugin`, we can also copy 'n paste the interface from *src/plugins/template.cpp*.
+---
 
-Then it's necessary to register the existence of the plugin object by using the `REGISTER_ML_PLUGIN(plugin)` macro.
+## Incluindo a API
 
-Now it's time to implement the events, they are virtual methods from the `modloader::basic_plugin` object.
+Para utilizar a interface C++, inclua o seguinte cabeçalho:
 
-### Events
+```cpp
+#include <modloader/modloader.hpp>
+```
 
-#### GetInfo -- `const info& GetInfo()`
+Esse arquivo está localizado na pasta **include/** da árvore de código-fonte.
 
- This method should return the reference to an static `modloader::basic_plugin::info`     object. This info object is defined as:
+---
 
-    struct info
-    {
-        const char*  name;
-        const char*  version;
-        const char*  author;
-        int          default_priority;
-        const char** extable;
-    };
+## Criando um plugin
 
- _Where_:
- 
-  + `name` is unused but should be the name of the plugin
-  + `version` is the version of the plugin
-  + `author` is the author of the plugin, may be _nullptr_
-  + `default_priority` is the plugin events priority in relation with other plugins, use _-1_ for default
-  + `extable` is a table of pointers to c-strings specifying the extensions this plugin might handle, the end of the table must be marked by a null pointer. Notice this is merely a hint for faster lookup, extensions that the plugin will receive by the events aren't restricted to those.
+O primeiro passo é criar uma classe derivada de:
 
-#### OnStartup -- [optional] `bool OnStartup()` 
+```cpp
+modloader::basic_plugin
+```
 
- This event is called when the plugin gets started up, the start up order is undertemined.
- 
- The method should return **true** if the startup was successful and **false** otherwise. When the startup wasn't successful the plugin will get unloaded immediatelly without calling `OnShutdown`
- Essentially it should return false if the running game isn't the game the plugin is intended to work with.
+Você também pode utilizar como base o arquivo:
 
-#### OnShutdown -- [optional] `bool OnShutdown()` 
- 
- This event is called when the plugin gets shutdown.
- 
- The method should return **true** if the shutdown was successful and **false** otherwise.
- Currently this return value has no effect, but you shouldn't relly on this behaviour.
+```text
+src/plugins/template.cpp
+```
 
-#### GetBehaviour -- `int  GetBehaviour(modloader::file& file)`
- 
- This event is called to know whether this plugin is responsible for handling the specified `file`.
+Depois disso, registre seu plugin utilizando a macro:
 
- The method should return either:
- 
-  + `MODLOADER_BEHAVIOUR_NO` meaning this file is not handled by this plugin.
-  + `MODLOADER_BEHAVIOUR_YES` meaning this file is handled by this plugin, see details below.
-  + `MODLOADER_BEHAVIOUR_CALLME` meaning this file is not handled by this plugin but the plugin would like to receive it anyway during the install/reinstall/uninstall process.
- 
+```cpp
+REGISTER_ML_PLUGIN(plugin)
+```
 
- When `MODLOADER_BEHAVIOUR_YES` is returned the plugin **shall** set the `modloader::file::behaviour` field of the `file` object.
- This field determines the *behaviour* of the specified file. An behaviour is unique for each unique kind of file.
- That means if two files with the same behaviour are present, only one will get installed (or it'll uninstall the previous one).
+Agora basta implementar os eventos (métodos virtuais) fornecidos por `modloader::basic_plugin`.
 
- An example is, *a.model* has the same behaviour as another *a.model* but not the same as *b.model*.
- Two files with the same behaviour will never be installed at the same time.
- 
- _Special Note 1_: The highest bit of the `behaviour` is reserved and shouldn't be touched.
- _Special Note 2_: Since the object is non-const, it's important to note that you shall not write to any field of `file` other than `behaviour` during this event.
+---
 
-#### InstallFile -- `bool   InstallFile(const modloader::file& file)`
- 
- This event is called to install a file previosly marked as `MODLOADER_BEHAVIOUR_YES` or `MODLOADER_BEHAVIOUR_CALLME`.
- 
- Any previous file with the same behaviour as `file` got uninstalled, essentially calling `UninstallFile` in the process.
+# Eventos
 
- The method should return **true** if the install was successful and **false** otherwise.
- The return value is ignored for *CALLME* handlers.
+## GetInfo
 
-#### ReinstallFile -- `bool   ReinstallFile(const modloader::file& file)`
+```cpp
+const info& GetInfo()
+```
 
- This event is called to reinstall a file previosly installed meaning the file has changed in some way. The file behaviour is guaranted to not have changed during the file change.
+Este método deve retornar uma referência para um objeto estático do tipo:
 
- The method should return **true** if the reinstall was successful and **false** otherwise.
- If the reinstall wasn't successful, the file will get uninstalled, essentially by calling `UninstallFile`.
- The return value is ignored for *CALLME* handlers.
+```cpp
+modloader::basic_plugin::info
+```
 
-#### UninstallFile -- `bool   UninstallFile(const modloader::file& file)`
- 
- This event is called to uninstall a file that was previosly installed.
+Estrutura:
 
- The method should return **true** if the uninstall was successful and **false** otherwise.
- If the uninstall wasn't successful the file will still be in 'installed' state.
- The return value is ignored for *CALLME* handlers.
+```cpp
+struct info
+{
+    const char*  name;
+    const char*  version;
+    const char*  author;
+    int          default_priority;
+    const char** extable;
+};
+```
 
-#### Update -- [optional] `void Update()`
- 
- This event is called after a serie of *InstallFile / ReinstallFile / UninstallFile* calls to update the state of the plugin if necessary.
+### Campos
 
+### name
 
-### Mod Loader Objects
+Nome do plugin.
 
-#### *modloader::basic_plugin*
-There are some functions on `modloader::basic_plugin` that may be called to communicate with Mod Loader. There are also some data fields.
+Atualmente este campo não é utilizado internamente, mas deve conter o nome do plugin.
 
-+ `loader` stores information about Mod Loader such as the game full path, whether the game has started, etc.
-+ `Log(fmt, ...)` and `vLog(fmt, va_list` can be used to log into the logging stream
-+ `Error(fmt, ...)` can be used to display a error message box
-+ `cast<To>()` can be used to cast a `basic_plugin` object to another derived object.
+---
 
-Not in `modloader::basic_plugin` class, but there is a `modloader::plugin_ptr` that points to your plugin object, as registered in `REGISTER_ML_PLUGIN`
+### version
 
-#### *modloader::plugin*
- This object represents an Mod Loader plugin for the loader core.
- Currently this object has no use for plugin creators.
- 
-#### *modloader::mod*
- This object represents an mod in Mod Loader (*i.e.* one folder at *modloader* directory).
- 
-#### *modloader::file*
- This object represents an file in Mod Loader, it stores many information about the file, such as it's path, filename hash, size, and more (see *modloader/modloader.hpp* and *modloader/modloader/h*).
- 
- It's definitely the most useful object for plugin creators, make sure you understand it before starting your plugin.
+Versão do plugin.
 
-### Objects Lifetime 
+---
 
- The `modloader::file`, `modloader::mod` and `modloader::plugin` objects are guaranted to be valid from the moment it gets passed to `InstallFile` until the file returns from `UninstallFile`. 
- That means you can store it's pointer somewhere at your plugin!
+### author
 
- Notice the object is **NOT** guaranted to be valid after a `GetBehaviour` nor during an `Update` with an object previosly uninstalled.
+Autor do plugin.
 
-### Examples
-Examples can be found by looking at Mod Loader plugins itself (*src/plugins/*) or by looking at the template for plugins (*src/plugins/template.cpp*)
+Pode ser:
 
+```cpp
+nullptr
+```
 
-Utility headers
--------------------------------
+caso não deseje informar.
 
-Beyond API headers (*include/modloader.h* and *include/modloader.hpp*) there are utility headers on the *include/modloader/util/* directory.
-Those utility headers are there to help plugin creators with usual tasks.
+---
+
+### default_priority
+
+Prioridade padrão dos eventos do plugin em relação aos demais plugins.
+
+Utilize:
+
+```cpp
+-1
+```
+
+para usar a prioridade padrão.
+
+---
+
+### extable
+
+Lista das extensões de arquivos suportadas pelo plugin.
+
+Exemplo:
+
+```cpp
+.dff
+.txd
+.ide
+.dat
+```
+
+A lista deve terminar obrigatoriamente com:
+
+```cpp
+nullptr
+```
+
+> **Observação:** Essa lista serve apenas para otimizar a busca. O plugin ainda poderá receber arquivos com outras extensões.
+
+---
+
+# OnStartup
+
+```cpp
+bool OnStartup()
+```
+
+**Opcional.**
+
+Chamado quando o plugin é inicializado.
+
+A ordem de inicialização dos plugins não é garantida.
+
+Retorne:
+
+```cpp
+true
+```
+
+caso a inicialização tenha ocorrido com sucesso.
+
+ou
+
+```cpp
+false
+```
+
+caso contrário.
+
+Quando `false` é retornado, o plugin será descarregado imediatamente, sem chamar `OnShutdown()`.
+
+Um uso comum é impedir que o plugin seja carregado em jogos incompatíveis.
+
+---
+
+# OnShutdown
+
+```cpp
+bool OnShutdown()
+```
+
+**Opcional.**
+
+Chamado quando o plugin é encerrado.
+
+Retorne:
+
+```cpp
+true
+```
+
+em caso de sucesso.
+
+ou
+
+```cpp
+false
+```
+
+caso contrário.
+
+> Atualmente esse valor de retorno não possui efeito prático, mas recomenda-se implementá-lo corretamente para futuras versões.
+
+---
+
+# GetBehaviour
+
+```cpp
+int GetBehaviour(modloader::file& file)
+```
+
+Este evento informa ao Mod Loader se este plugin será responsável por manipular determinado arquivo.
+
+Retorne um dos seguintes valores:
+
+### MODLOADER_BEHAVIOUR_NO
+
+O plugin não manipula este arquivo.
+
+---
+
+### MODLOADER_BEHAVIOUR_YES
+
+O plugin manipula este arquivo.
+
+Neste caso, é obrigatório definir:
+
+```cpp
+file.behaviour
+```
+
+Esse campo identifica o comportamento exclusivo daquele arquivo.
+
+Arquivos com o mesmo comportamento não podem permanecer instalados ao mesmo tempo.
+
+Exemplo:
+
+```
+a.model
+```
+
+possui o mesmo comportamento que outro:
+
+```
+a.model
+```
+
+mas diferente de:
+
+```
+b.model
+```
+
+Quando um novo arquivo com o mesmo comportamento é instalado, o anterior é automaticamente removido.
+
+---
+
+### MODLOADER_BEHAVIOUR_CALLME
+
+O plugin não é responsável por esse arquivo, mas deseja receber notificações durante:
+
+- instalação;
+- reinstalação;
+- remoção.
+
+---
+
+### Observações
+
+- O bit mais alto de `behaviour` é reservado e não deve ser alterado.
+- Durante este evento, o único campo do objeto `file` que pode ser modificado é:
+
+```cpp
+behaviour
+```
+
+---
+
+# InstallFile
+
+```cpp
+bool InstallFile(const modloader::file& file)
+```
+
+Chamado quando um arquivo será instalado.
+
+Se já existir outro arquivo com o mesmo comportamento, ele será automaticamente removido antes.
+
+Retorne:
+
+```cpp
+true
+```
+
+em caso de sucesso.
+
+ou
+
+```cpp
+false
+```
+
+caso contrário.
+
+> O valor de retorno é ignorado para plugins que utilizam `CALLME`.
+
+---
+
+# ReinstallFile
+
+```cpp
+bool ReinstallFile(const modloader::file& file)
+```
+
+Chamado quando um arquivo previamente instalado foi alterado.
+
+O comportamento do arquivo permanece o mesmo.
+
+Retorne:
+
+```cpp
+true
+```
+
+caso a reinstalação seja bem-sucedida.
+
+Caso retorne:
+
+```cpp
+false
+```
+
+o arquivo será automaticamente desinstalado.
+
+Assim como em `InstallFile`, o retorno é ignorado para plugins `CALLME`.
+
+---
+
+# UninstallFile
+
+```cpp
+bool UninstallFile(const modloader::file& file)
+```
+
+Chamado quando um arquivo precisa ser removido.
+
+Retorne:
+
+```cpp
+true
+```
+
+caso a remoção seja concluída.
+
+Se retornar:
+
+```cpp
+false
+```
+
+o arquivo continuará marcado como instalado.
+
+O retorno também é ignorado para plugins `CALLME`.
+
+---
+
+# Update
+
+```cpp
+void Update()
+```
+
+**Opcional.**
+
+Chamado após uma sequência de chamadas para:
+
+- InstallFile
+- ReinstallFile
+- UninstallFile
+
+Utilize esse evento para atualizar estados internos do plugin, caso necessário.
+
+---
+
+# Objetos do Mod Loader
+
+## modloader::basic_plugin
+
+Classe base utilizada para criar plugins.
+
+Ela fornece diversas funções úteis.
+
+### loader
+
+Contém informações gerais sobre o Mod Loader, como:
+
+- caminho do jogo;
+- estado da inicialização;
+- informações da instalação.
+
+---
+
+### Log()
+
+```cpp
+Log(fmt, ...)
+```
+
+Grava mensagens no arquivo de log do Mod Loader.
+
+Também existe:
+
+```cpp
+vLog(fmt, va_list)
+```
+
+---
+
+### Error()
+
+```cpp
+Error(fmt, ...)
+```
+
+Exibe uma caixa de mensagem de erro ao usuário.
+
+---
+
+### cast<To>()
+
+Permite converter um objeto derivado de `basic_plugin` para outro tipo.
+
+---
+
+## modloader::plugin_ptr
+
+Ponteiro global para o plugin registrado através de:
+
+```cpp
+REGISTER_ML_PLUGIN()
+```
+
+---
+
+## modloader::plugin
+
+Representa um plugin registrado no Mod Loader.
+
+Atualmente possui pouca utilidade para desenvolvedores de plugins.
+
+---
+
+## modloader::mod
+
+Representa um mod carregado pelo Mod Loader.
+
+Na prática, corresponde a uma pasta localizada dentro de:
+
+```text
+modloader/
+```
+
+---
+
+## modloader::file
+
+Representa um arquivo pertencente a um mod.
+
+Esse é o objeto mais importante para quem desenvolve plugins.
+
+Ele contém diversas informações, como:
+
+- caminho completo;
+- nome;
+- hash;
+- tamanho;
+- extensão;
+- comportamento;
+- e outros dados.
+
+Consulte:
+
+```text
+include/modloader.hpp
+```
+
+para conhecer todos os seus campos.
+
+---
+
+# Tempo de vida dos objetos
+
+Os objetos:
+
+- `modloader::file`
+- `modloader::mod`
+- `modloader::plugin`
+
+permanecem válidos desde o momento em que são recebidos em:
+
+```cpp
+InstallFile()
+```
+
+até o retorno de:
+
+```cpp
+UninstallFile()
+```
+
+Portanto, é seguro armazenar seus ponteiros durante esse período.
+
+Entretanto, **não é garantido** que eles permaneçam válidos:
+
+- após `GetBehaviour()`;
+- durante `Update()` caso o arquivo já tenha sido removido.
+
+---
+
+# Exemplos
+
+Você pode encontrar exemplos completos em:
+
+```text
+src/plugins/
+```
+
+ou utilizar como base o arquivo:
+
+```text
+src/plugins/template.cpp
+```
+
+---
+
+# Cabeçalhos Utilitários
+
+Além dos arquivos principais da API:
+
+```text
+include/modloader.h
+include/modloader.hpp
+```
+
+o projeto disponibiliza diversos cabeçalhos auxiliares em:
+
+```text
+include/modloader/util/
+```
+
+Esses arquivos oferecem funções utilitárias para facilitar o desenvolvimento de plugins, evitando a necessidade de implementar tarefas comuns manualmente.
