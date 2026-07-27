@@ -1,103 +1,155 @@
+
 /*
- * Mod Loader - Address Translation Between Game Versions
- * Copyright (C) 2013-2014  LINK/2012 <dma_2012@hotmail.com>
- * Licensed under the MIT License, see LICENSE at top level directory.
- * 
+ * Mod Loader - Tradutor de Endereços entre Versões do Jogo
+ * Copyright (C) 2013-2014 LINK/2012 <dma_2012@hotmail.com>
+ *
+ * Licenciado sob a Licença MIT.
+ * Consulte o arquivo LICENSE localizado na raiz do projeto.
+ *
+ * Tradução PT-BR: VoxBrasil
  */
+
 #include <modloader/modloader.hpp>
 #include <modloader/util/injector.hpp>
 #include <map>
+
 using namespace injector;
- 
-// Tables
+
+// Tabelas de tradução
 #include "gta3/sa/10us.hpp"
 #include "gta3/sa/10eu.hpp"
 #include "gta3/vc/10.hpp"
 #include "gta3/3/10.hpp"
- 
-// Constants
-static const size_t max_ptr_dist = 8;       // Max distance to take as a "equivalent" address for modloader
-static void init(std::map<memory_pointer_raw, memory_pointer_raw>& map);
- 
-// Externs
-bool trying_address = false;    // Don't warn about not found address
 
-// Translate pointer from GTA SA 10US offset to this executable offset
+// Constantes
+static const size_t max_ptr_dist = 8;   // Distância máxima para considerar um endereço equivalente.
+
+static void init(std::map<memory_pointer_raw, memory_pointer_raw>& map);
+
+// Variáveis externas
+bool trying_address = false;    // Não exibe aviso quando um endereço não é encontrado.
+
+// Traduz um ponteiro da versão GTA San Andreas 1.0 US
+// para o endereço correspondente da versão atual do executável.
 void* injector::address_manager::translator(void* p_)
 {
     static std::map<memory_pointer_raw, memory_pointer_raw> map;
 
-    //return p_;
+    // return p_;
+
     memory_pointer_raw p = p_;
     memory_pointer_raw result = nullptr;
-               
-    // Initialize if hasn't initialized yet
+
+    // Inicializa a tabela caso ainda não tenha sido criada.
     init(map);
- 
-    // Find first element in the map that is greater than or equal to p
+
+    // Procura o primeiro endereço maior ou igual ao solicitado.
     auto it = map.lower_bound(p);
+
     if(it != map.end())
     {
-        // If it's not exactly the address, get back one position on the table
-        if(it->first != p) --it;
- 
-        auto diff = uintptr_t(p - it->first);       // What's the difference between p and that address?
-        if(diff <= max_ptr_dist)                    // Could we live with this difference in hands?
-            result = it->second + raw_ptr(diff);    // Yes, we can!
+        // Caso não seja exatamente o endereço procurado,
+        // retorna uma posição anterior na tabela.
+        if(it->first != p)
+            --it;
+
+        // Calcula a diferença entre os endereços.
+        auto diff = uintptr_t(p - it->first);
+
+        // Caso esteja dentro da distância permitida,
+        // considera o endereço equivalente.
+        if(diff <= max_ptr_dist)
+            result = it->second + raw_ptr(diff);
     }
-   
-    // If we couldn't translate the address, notify
+
+    // Caso a tradução não seja possível.
     if(!result)
     {
         if(!trying_address)
         {
             char buf[128];
-            sprintf(buf, "Warning: Could not translate address 0x%p", p.get<void>());
 
-            #if NDEBUG  // non intrusive, for users
-                if(modloader::plugin_ptr) modloader::plugin_ptr->Log(buf);
-            #else       // intrusive, coder must see
-                if(modloader::plugin_ptr) modloader::plugin_ptr->Error(buf);
-                else if(true) MessageBoxA(0, buf, injector::game_version_manager::PluginName, 0);
-            #endif
+            sprintf(
+                buf,
+                "Aviso: Não foi possível traduzir o endereço 0x%p",
+                p.get<void>()
+            );
+
+#if NDEBUG
+            // Versão Release
+            if(modloader::plugin_ptr)
+                modloader::plugin_ptr->Log(buf);
+#else
+            // Versão Debug
+            if(modloader::plugin_ptr)
+                modloader::plugin_ptr->Error(buf);
+            else
+                MessageBoxA(
+                    0,
+                    buf,
+                    injector::game_version_manager::PluginName,
+                    0
+                );
+#endif
         }
     }
-   
+
     return result.get();
 }
- 
-// Initializes the address translator and it's table
+
+
+// Inicializa a tabela de tradução de endereços.
 static void init(std::map<memory_pointer_raw, memory_pointer_raw>& map)
 {
     static bool bInitialized = false;
-    if(bInitialized == false)
+
+    if(!bInitialized)
     {
         auto& gvm = injector::address_manager::singleton();
+
         bInitialized = true;
-       
-        // The map must have null pointers at it's bounds
-        // So they work properly with lower_bound and stuff
+
+        // A tabela precisa possuir ponteiros nulos
+        // em seus limites para que lower_bound()
+        // funcione corretamente.
         map.emplace(0x00000000u, 0x00000000u);
         map.emplace(0xffffffffu, 0xffffffffu);
- 
-        // We're only working with SA addresses on here
+
+        // GTA San Andreas
         if(gvm.IsSA())
         {
-            // Find version and initialize addresses table
-            if(gvm.GetMajorVersion() == 1 && gvm.GetMinorVersion() == 0 && gvm.IsUS())
+            if(gvm.GetMajorVersion() == 1 &&
+               gvm.GetMinorVersion() == 0 &&
+               gvm.IsUS())
+            {
                 sa_10us(map);
-            else if(gvm.GetMajorVersion() == 1 && gvm.GetMinorVersion() == 0 && gvm.IsEU())
+            }
+            else if(gvm.GetMajorVersion() == 1 &&
+                    gvm.GetMinorVersion() == 0 &&
+                    gvm.IsEU())
+            {
                 sa_10eu(map);
-		}
+            }
+        }
+
+        // GTA Vice City
         else if(gvm.IsVC())
-	    {
-		    if(gvm.GetMajorVersion() == 1 && gvm.GetMinorVersion() == 0)
-			    vc_10(map);
-	    }
+        {
+            if(gvm.GetMajorVersion() == 1 &&
+               gvm.GetMinorVersion() == 0)
+            {
+                vc_10(map);
+            }
+        }
+
+        // GTA III
         else if(gvm.IsIII())
-	    {
-		    if (gvm.GetMajorVersion() == 1 && gvm.GetMinorVersion() == 0)
-		        III_10(map);
-	    }
+        {
+            if(gvm.GetMajorVersion() == 1 &&
+               gvm.GetMinorVersion() == 0)
+            {
+                III_10(map);
+            }
+        }
     }
 }
