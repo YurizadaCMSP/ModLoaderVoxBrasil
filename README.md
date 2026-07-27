@@ -1,27 +1,110 @@
-# Mod Loader
+# Mod Loader - VoxBrasil (PT-BR)
 
-Mod Loader is a plugin for Grand Theft Auto III, Vice City and San Andreas that adds an easy and user-friendly way to install and uninstall modifications into the game, as if the game had official modding support. No changes are **ever** made to the original game files, everything is injected on the fly, at runtime!
+> **Créditos ao projeto original:** Este repositório é baseado no projeto **Mod Loader**, desenvolvido por seus autores originais. Eu apenas fiz um fork deste projeto para dar continuidade ao seu desenvolvimento, traduzindo para português (PT-BR), corrigindo bugs, adicionando melhorias e mantendo-o atualizado para a comunidade brasileira de GTA San Andreas / SA-MP.
 
-The usage is as simple as inserting the mod files into the *modloader/* directory. Uninstalling is as easy as that too, delete the mod files and you are done. Hot swapping mods while the game is running? By using Mod Loader you can!
+## Sobre
 
-Still not sure? Check out [this](https://www.youtube.com/watch?v=TvRpQa8dJ7E) nice video from Ivey. For more, check out our [GTAForums](http://gtaforums.com/topic/669520-mod-loader/) thread and our [GTAGarage](http://www.gtagarage.com/mods/show.php?id=25377) page.
+O **Mod Loader** é um plugin para **Grand Theft Auto III**, **Vice City** e **San Andreas** que adiciona uma forma simples, prática e amigável de instalar e desinstalar modificações no jogo, como se ele tivesse suporte oficial para mods.
 
-### Building and Installing
+Nenhuma alteração é feita nos arquivos originais do jogo. Todos os mods são carregados dinamicamente durante a execução do jogo, mantendo sua instalação original intacta.
 
-Requirements:
+### Principais vantagens
 
-+ [Premake 5](https://premake.github.io/download/) *(install with `winget install -e --id Premake.Premake.5.Beta`, or download from the official website)*
-+ [Visual Studio](https://www.visualstudio.com/downloads) 2017 or greater.
-+ [Windows XP Platform Toolset](https://learn.microsoft.com/en-us/cpp/build/configuring-programs-for-windows-xp) is required; add it from Visual Studio’s Individual Components Installer if needed.
+- ✅ Instalação extremamente simples.
+- ✅ Não modifica os arquivos originais do GTA.
+- ✅ Organização dos mods em pastas.
+- ✅ Ativar ou remover mods facilmente.
+- ✅ Suporte para Hot Reload (troca de mods enquanto o jogo está aberto, quando suportado).
 
-Run the following command in the root of this directory to generate the project files:
+## Como utilizar
 
-    premake5 vs2022
+Basta colocar seus arquivos de mod dentro da pasta:
 
-You can install the generated binaries into your game directory by running:
+```
+modloader/
+```
 
-    premake5 install "C:/Program Files (x86)/Rockstar Games/GTA San Andreas"
+Para remover um mod, basta apagar sua pasta ou arquivos da pasta `modloader`.
 
-Or, you might want the files to be automatically installed every time you build the solution:
- 
-    premake5 vs2022 "--idir=C:/Program Files (x86)/Rockstar Games/GTA San Andreas"
+Simples assim.
+
+---
+
+## Projeto VoxBrasil
+
+Este repositório é uma continuação do projeto original.
+
+O objetivo é:
+
+- 🇧🇷 Traduzir todo o projeto para Português Brasileiro;
+- 🔧 Corrigir bugs;
+- 🚀 Atualizar o código para versões mais recentes do Visual Studio;
+- 📦 Melhorar a compatibilidade com GTA SA, SA-MP e Open.MP;
+- 💻 Modernizar o sistema de compilação;
+- 🛠️ Adicionar novas funcionalidades futuramente.
+
+Este projeto **não reivindica autoria do Mod Loader original**. Todos os créditos pelo desenvolvimento inicial pertencem aos seus criadores.
+
+---
+
+# Compilação
+
+## Requisitos
+
+- Premake 5
+- Visual Studio 2017 ou superior (recomendado Visual Studio 2022)
+- Windows XP Platform Toolset (caso necessário)
+
+## Gerando os arquivos do projeto
+
+Execute na pasta raiz:
+
+```bash
+premake5 vs2022
+```
+
+---
+
+## Instalando diretamente no GTA
+
+Você pode instalar automaticamente os arquivos compilados para a pasta do jogo utilizando:
+
+```bash
+premake5 install "C:/Program Files (x86)/Rockstar Games/GTA San Andreas"
+```
+
+---
+
+## Instalação automática ao compilar
+
+Também é possível configurar o Premake para copiar automaticamente os arquivos para a pasta do jogo sempre que o projeto for compilado:
+
+```bash
+premake5 vs2022 "--idir=C:/Program Files (x86)/Rockstar Games/GTA San Andreas"
+```
+
+---
+
+## Créditos
+
+**Projeto Original**
+
+Mod Loader
+
+Autores originais e colaboradores da comunidade GTA.
+
+**Fork Brasileiro**
+
+VoxBrasil
+
+Responsável por:
+
+- Tradução para Português (PT-BR)
+- Atualizações
+- Correções
+- Melhorias
+- Manutenção do projeto
+
+---
+
+Este projeto é um fork do Mod Loader original e existe com o objetivo de manter o projeto vivo, atualizado e acessível para a comunidade brasileira.
